@@ -1,6 +1,8 @@
-import 'package:bootcamp_bitcoin_ticker/coin_data.dart';
+import 'package:bootcamp_bitcoin_ticker/services/coin_data.dart';
+import 'package:bootcamp_bitcoin_ticker/components/crypto_card.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:bootcamp_bitcoin_ticker/utilities/constants.dart';
 import 'dart:io' show Platform;
 
 class PriceScreen extends StatefulWidget {
@@ -9,11 +11,16 @@ class PriceScreen extends StatefulWidget {
 }
 
 class _PriceScreenState extends State<PriceScreen> {
+  CoinData coin = CoinData();
+
   String selectedCurrency = 'USD';
+  String rate = '?';
+  bool isWaiting = false;
+  Map<String, String> coinValue = {};
 
   DropdownButton<String> androidDropdown() {
     List<DropdownMenuItem<String>> getDropdownItems() {
-      return currenciesList.map<DropdownMenuItem<String>>((String currency) {
+      return kCurrenciesList.map<DropdownMenuItem<String>>((String currency) {
         return DropdownMenuItem<String>(
           value: currency,
           child: Text(currency),
@@ -27,6 +34,7 @@ class _PriceScreenState extends State<PriceScreen> {
       onChanged: (value) {
         setState(() {
           selectedCurrency = value.toString();
+          getData();
         });
       },
     );
@@ -34,7 +42,7 @@ class _PriceScreenState extends State<PriceScreen> {
 
   CupertinoPicker iOSPicker() {
     List<Widget> getCupertinoPickerItems() {
-      return currenciesList.map<Widget>((String currency) {
+      return kCurrenciesList.map<Widget>((String currency) {
         return Text(currency);
       }).toList();
     }
@@ -44,11 +52,31 @@ class _PriceScreenState extends State<PriceScreen> {
       itemExtent: 30.0,
       onSelectedItemChanged: (selectedIndex) {
         setState(() {
-          selectedCurrency = currenciesList[selectedIndex];
+          selectedCurrency = kCurrenciesList[selectedIndex];
+          getData();
         });
       },
       children: getCupertinoPickerItems(),
     );
+  }
+
+  void getData() async {
+    isWaiting = true;
+    try {
+      var data = await CoinData().getCoinData(selectedCurrency);
+      isWaiting = false;
+      setState(() {
+        coinValue = data;
+      });
+    } catch (e) {
+      print(e);
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    getData();
   }
 
   @override
@@ -56,29 +84,35 @@ class _PriceScreenState extends State<PriceScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text('🤑 Coin Ticker'),
+        centerTitle: true,
       ),
       body: Column(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
-          Padding(
-            padding: EdgeInsets.fromLTRB(18.0, 18.0, 18.0, 0),
-            child: Card(
-              color: Colors.lightBlueAccent,
-              elevation: 5.0,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10.0),
-              ),
-              child: Padding(
-                padding: EdgeInsets.symmetric(vertical: 15.0, horizontal: 28.0),
-                child: Text(
-                  '1 BTC = ? USD',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 20.0,
-                    color: Colors.white,
+          Expanded(
+            child: SingleChildScrollView(
+              child: Column(
+                children: [
+                  CryptoCard(
+                    rate:
+                        isWaiting ? '?' : coinValue[kCryptoList[0]].toString(),
+                    selectedCurrency: selectedCurrency,
+                    cryto: kCryptoList[0],
                   ),
-                ),
+                  CryptoCard(
+                    rate:
+                        isWaiting ? '?' : coinValue[kCryptoList[1]].toString(),
+                    selectedCurrency: selectedCurrency,
+                    cryto: kCryptoList[1],
+                  ),
+                  CryptoCard(
+                    rate:
+                        isWaiting ? '?' : coinValue[kCryptoList[2]].toString(),
+                    selectedCurrency: selectedCurrency,
+                    cryto: kCryptoList[2],
+                  ),
+                ],
               ),
             ),
           ),
